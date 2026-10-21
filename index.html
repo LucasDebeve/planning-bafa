@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planning BAFA</title>
+  <meta name="description" content="Créez et partagez le planning de votre session de formation BAFA 1 (8 jours) ou BAFA 3 (6 jours).">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar no-print">
+    <div class="brand">
+      <img src="assets/favicon.svg" alt="" width="28" height="28">
+      <span>Planning BAFA</span>
+    </div>
+    <div class="topbar-planning">
+      <label class="sr-only" for="planning-select">Planning courant</label>
+      <select id="planning-select"></select>
+      <button type="button" class="btn" id="btn-new" title="Nouveau planning">＋ Nouveau</button>
+      <button type="button" class="btn" id="btn-duplicate" title="Dupliquer ce planning">Dupliquer</button>
+      <button type="button" class="btn btn-danger-ghost" id="btn-delete" title="Supprimer ce planning">Supprimer</button>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="btn" id="btn-print">Imprimer / PDF</button>
+      <button type="button" class="btn" id="btn-ics">Export agenda (.ics)</button>
+      <button type="button" class="btn" id="btn-export">Exporter (.json)</button>
+      <label class="btn" for="import-file">Importer</label>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+      <button type="button" class="btn btn-primary" id="btn-share">Partager un lien</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar no-print" aria-label="Paramètres et bibliothèque">
+      <details open class="panel">
+        <summary>Session</summary>
+        <div class="panel-body">
+          <label class="field">
+            <span>Nom de la session</span>
+            <input type="text" id="f-name" placeholder="Ex. BAFA 1 — Toussaint 2026">
+          </label>
+          <fieldset class="field">
+            <legend>Type de formation</legend>
+            <div class="segmented" id="f-type">
+              <label><input type="radio" name="type" value="bafa1"><span>BAFA 1<small>Formation générale · 8 j</small></span></label>
+              <label><input type="radio" name="type" value="bafa3"><span>BAFA 3<small>Approfondissement · 6 j</small></span></label>
+            </div>
+          </fieldset>
+          <label class="field" id="f-theme-wrap">
+            <span>Thème d'approfondissement</span>
+            <input type="text" id="f-theme" list="themes" placeholder="Ex. Petite enfance">
+            <datalist id="themes">
+              <option value="Petite enfance (3-6 ans)">
+              <option value="Activités de pleine nature">
+              <option value="Jeux et grands jeux">
+              <option value="Activités artistiques et d'expression">
+              <option value="Accueil d'enfants en situation de handicap">
+              <option value="Activités scientifiques et techniques">
+              <option value="Accompagnement des adolescents">
+              <option value="Activités nautiques">
+              <option value="Camping et mini-camps">
+              <option value="Musique et chant">
+            </datalist>
+          </label>
+          <label class="field">
+            <span>Date du premier jour</span>
+            <input type="date" id="f-start">
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span>Organisme</span>
+              <input type="text" id="f-org" placeholder="Organisme habilité">
+            </label>
+            <label class="field">
+              <span>Lieu</span>
+              <input type="text" id="f-place" placeholder="Centre, ville">
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details open class="panel">
+        <summary>Équipe de formation</summary>
+        <div class="panel-body">
+          <ul class="chip-list" id="team-list"></ul>
+          <form class="inline-form" id="team-form">
+            <input type="text" id="team-name" placeholder="Prénom Nom" aria-label="Nom du formateur ou de la formatrice" required>
+            <input type="text" id="team-role" placeholder="Rôle" aria-label="Rôle" list="roles">
+            <datalist id="roles">
+              <option value="Directeur·rice de session">
+              <option value="Formateur·rice">
+              <option value="Formateur·rice stagiaire">
+              <option value="Intervenant·e">
+            </datalist>
+            <button type="submit" class="btn btn-small">Ajouter</button>
+          </form>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Créneaux de la journée</summary>
+        <div class="panel-body">
+          <ul class="slot-list" id="slot-list"></ul>
+          <button type="button" class="btn btn-small" id="btn-add-slot">＋ Ajouter un créneau</button>
+        </div>
+      </details>
+
+      <details open class="panel">
+        <summary>Bibliothèque de séquences</summary>
+        <div class="panel-body">
+          <p class="hint">Glissez une séquence dans le planning, ou utilisez le bouton ＋ d'une case.</p>
+          <input type="search" id="lib-search" placeholder="Rechercher…" aria-label="Rechercher une séquence">
+          <div id="library" class="library"></div>
+          <button type="button" class="btn btn-small" id="btn-add-lib">＋ Nouvelle séquence type</button>
+        </div>
+      </details>
+    </aside>
+
+    <main class="main">
+      <section class="print-header" id="print-header"></section>
+
+      <div class="toolbar no-print">
+        <div class="legend" id="legend"></div>
+        <div class="toolbar-right">
+          <button type="button" class="btn btn-small" id="btn-template">Pré-remplir avec un modèle</button>
+          <button type="button" class="btn btn-small btn-danger-ghost" id="btn-clear">Vider le planning</button>
+        </div>
+      </div>
+
+      <div class="grid-scroll">
+        <table class="grid" id="grid"></table>
+      </div>
+
+      <section class="summary" id="summary" aria-label="Récapitulatif"></section>
+    </main>
+  </div>
+
+  <!-- Dialogue d'édition d'une séquence -->
+  <dialog id="activity-dialog">
+    <form method="dialog" id="activity-form">
+      <h2 id="activity-dialog-title">Séquence</h2>
+      <p class="dialog-sub" id="activity-dialog-sub"></p>
+      <label class="field" id="act-from-lib-wrap">
+        <span>Partir d'une séquence type</span>
+        <select id="act-from-lib"></select>
+      </label>
+      <label class="field">
+        <span>Intitulé</span>
+        <input type="text" id="act-title" required>
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>Catégorie</span>
+          <select id="act-cat"></select>
+        </label>
+        <label class="field">
+          <span>Durée (min, facultatif)</span>
+          <input type="number" id="act-duration" min="5" step="5" placeholder="Auto">
+        </label>
+      </div>
+      <fieldset class="field">
+        <legend>Formateur·rices</legend>
+        <div class="check-list" id="act-team"></div>
+      </fieldset>
+      <label class="field">
+        <span>Lieu / salle</span>
+        <input type="text" id="act-place">
+      </label>
+      <label class="field">
+        <span>Objectifs, déroulé, matériel…</span>
+        <textarea id="act-notes" rows="4"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="act-save-lib">
+        <span>Ajouter aussi à la bibliothèque</span>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-danger-ghost" id="act-delete">Supprimer</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" value="cancel" id="act-cancel">Annuler</button>
+        <button type="submit" class="btn btn-primary" value="ok">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialogue séquence type de bibliothèque -->
+  <dialog id="lib-dialog">
+    <form method="dialog" id="lib-form">
+      <h2>Nouvelle séquence type</h2>
+      <label class="field">
+        <span>Intitulé</span>
+        <input type="text" id="lib-title" required>
+      </label>
+      <label class="field">
+        <span>Catégorie</span>
+        <select id="lib-cat"></select>
+      </label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="lib-cancel">Annuler</button>
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Dialogue nouveau planning -->
+  <dialog id="new-dialog">
+    <form method="dialog" id="new-form">
+      <h2>Nouveau planning</h2>
+      <fieldset class="field">
+        <legend>Type de formation</legend>
+        <div class="segmented">
+          <label><input type="radio" name="newtype" value="bafa1" checked><span>BAFA 1<small>Formation générale · 8 j</small></span></label>
+          <label><input type="radio" name="newtype" value="bafa3"><span>BAFA 3<small>Approfondissement · 6 j</small></span></label>
+        </div>
+      </fieldset>
+      <label class="field">
+        <span>Date du premier jour</span>
+        <input type="date" id="new-start" required>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="new-template" checked>
+        <span>Pré-remplir avec un planning type</span>
+      </label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="new-cancel">Annuler</button>
+        <button type="submit" class="btn btn-primary">Créer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
